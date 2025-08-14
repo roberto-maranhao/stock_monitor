@@ -1,0 +1,80 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite database
+*.db
+
+# VS Code settings
+.vscode/
+
+# Environment variables
+.env
+
+# Virtual environments
+venv/
+ENV/
+.env/
+.venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# macOS
+.DS_Store
+
+# Linux
+*~
+
+# Logs
+*.log
+
+# Test coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+
+# Pytest
+.pytest_cache/
+
+# pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Unit test / coverage reports
+*.egg-info/
+.eggs/
+
+# Installer logs
+debug.log
+
+# Local config
+*.local
+
+# Docker
+*.pid
+
+# Systemd
+*.service
+*.socket
+
+# SSH
+*.pub
+*.pem
+*.key
