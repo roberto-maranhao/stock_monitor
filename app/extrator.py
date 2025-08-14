@@ -1,3 +1,5 @@
+from b3_opcoes import baixar_arquivo_b3, extrair_csv_do_zip, ler_opcoes_b3_csv
+from datetime import datetime
 
 
 import yfinance as yf
@@ -52,6 +54,65 @@ import threading
 import time as time_mod
 
 def extrair_e_salvar():
+    # --- INTEGRAÇÃO B3 PARA AÇÕES BRASILEIRAS ---
+    import os
+    from datetime import date, timedelta
+    import time as time_mod
+    tickers_brasil = [t for t in TICKERS if t.endswith('.SA')]
+    tickers_brasil_base = [t.replace('.SA','') for t in tickers_brasil]
+    if tickers_brasil:
+        pasta_zip = 'data/b3_zip'
+        os.makedirs(pasta_zip, exist_ok=True)
+        # Descobrir a data mínima de negociação já salva
+        min_expiry = (
+            Derivativo.select(Derivativo.expiry)
+            .where(Derivativo.ticker.in_(tickers_brasil))
+            .order_by(Derivativo.expiry.asc())
+            .first()
+        )
+        min_date = date(2025, 1, 1)
+        if min_expiry:
+            try:
+                min_date = datetime.strptime(str(min_expiry.expiry)[:10], '%Y-%m-%d').date()
+            except Exception:
+                pass
+        hoje = date.today()
+        data_atual = min_date
+        while data_atual <= hoje:
+            if data_atual.weekday() < 5:  # 0=segunda, 4=sexta
+                nome_zip = f"COTAHIST_D{data_atual.strftime('%d%m%Y')}.ZIP"
+                caminho_zip = os.path.join(pasta_zip, nome_zip)
+                if not os.path.exists(caminho_zip):
+                    try:
+                        # Função baixar_arquivo_b3 deve aceitar caminho de destino
+                        zip_path = baixar_arquivo_b3(data_atual.strftime('%Y%m%d'), destino=caminho_zip)
+                        if zip_path:
+                            # Descompacta em memória
+                            csv_path = extrair_csv_do_zip(zip_path, em_memoria=True)
+                            if csv_path:
+                                df_b3 = ler_opcoes_b3_csv(csv_path, tickers=tickers_brasil_base)
+                                for _, row in df_b3.iterrows():
+                                    try:
+                                        Derivativo.get_or_create(
+                                            ticker=row['PAPEL']+'.SA',
+                                            expiry=row['VENCIMENTO'],
+                                            tipo=row['TIPO_OPCAO'],
+                                            strike=row['PRECO_EXERC'],
+                                            defaults={
+                                                'last_price': row.get('PRECO_ULTIMO', 0) if pd.notnull(row.get('PRECO_ULTIMO', 0)) else 0,
+                                                'bid': 0,
+                                                'ask': 0,
+                                                'volume': row.get('QUANT_NEGOCIADA', 0) if pd.notnull(row.get('QUANT_NEGOCIADA', 0)) else 0
+                                            }
+                                        )
+                                    except Exception as e:
+                                        print(f"[B3] Erro ao salvar derivativo: {e}")
+                            # Aguarda 60 segundos antes de baixar o próximo arquivo
+                            print(f"[B3] Aguardando 60s para próximo arquivo...")
+                            time_mod.sleep(60)
+                    except Exception as e:
+                        print(f"[B3] Erro ao baixar/processar {nome_zip}: {e}")
+            data_atual += timedelta(days=1)
     db.connect(reuse_if_open=True)
     db.create_tables([HistoricoAcao, Derivativo])
     tickers = TICKERS
