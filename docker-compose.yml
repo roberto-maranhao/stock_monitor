@@ -1,0 +1,7 @@
+version: '3.8'
+services:
+  stock_monitor:
+    build: .
+    ports:
+      - "8085:8085"
+    restart: unless-stopped
