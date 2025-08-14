@@ -7,6 +7,10 @@ WORKDIR /app
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
+
+# Garante que o diretório data exista
+RUN mkdir -p /app/data
+
 # Depois copia o código da aplicação
 COPY app/ /app/
 

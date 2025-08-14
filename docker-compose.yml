@@ -5,3 +5,5 @@ services:
     ports:
       - "8085:8085"
     restart: unless-stopped
+    volumes:
+      - ./data:/app/data
