@@ -1,0 +1,283 @@
+# Define uma zona de limite de taxa chamada "addr" com tamanho de 10MB e rastreando endereços IP por 30 minutos
+limit_req_zone $binary_remote_addr zone=addr:10m rate=5r/s;
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name robertomaranhao.com;
+
+    # Redirect all HTTP to HTTPS
+    return 301 https://robertomaranhao.com$request_uri;
+}
+
+# HTTP to HTTPS redirect for mmcacopasa subdomains
+server {
+    listen 80;
+    listen [::]:80;
+    server_name mmcacopasa.robertomaranhao.com copasa.mmca.com.br;
+
+    # Redirect all HTTP to HTTPS
+    return 301 https://copasa.mmca.com.br$request_uri;
+}
+
+# HTTP to HTTPS redirect for mmcalataci subdomains
+server {
+    listen 80;
+    listen [::]:80;
+    server_name mmcalataci.robertomaranhao.com mmcalataci.mmca.com.br;
+
+    # Redirect all HTTP to HTTPS
+    return 301 https://mmcalataci.mmca.com.br$request_uri;
+}
+
+# HTTP to HTTPS redirect for stocks subdomain
+server {
+    listen 80;
+    listen [::]:80;
+    server_name stocks.robertomaranhao.com;
+
+    # Redirect all HTTP to HTTPS
+    return 301 https://stocks.robertomaranhao.com$request_uri;
+}
+
+# HTTP to HTTPS redirect for dig4me subdomain
+server {
+    listen 80;
+    listen [::]:80;
+    server_name dig4me.robertomaranhao.com;
+
+    # Redirect all HTTP to HTTPS
+    return 301 https://dig4me.robertomaranhao.com$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl ipv6only=on;
+    server_name robertomaranhao.com;
+
+    ssl_certificate /etc/letsencrypt/live/robertomaranhao.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/robertomaranhao.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # Limitar requisições para este servidor
+    limit_req zone=addr burst=10 nodelay;
+    
+    # Bloqueio básico para bots e scanners conhecidos
+    if ($http_user_agent ~* (bot|crawler|spider|scan|wget|curl|zgrab|nmap)) {
+        return 403;
+    }
+
+    # Redirect / to /blog
+    location = / {
+        return 301 /blog;
+    }
+
+    # Proxy /news to Docker app on port 8080
+    location /news/ {
+        proxy_pass http://localhost:8080/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Timeout settings
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+    }
+
+    # Proxy /blog to Docker app on port 8090
+    location /blog/ {
+        proxy_pass http://localhost:8090/blog/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Prefix /blog;
+        proxy_set_header X-Script-Name /blog;
+        
+        # Timeout settings
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+    }
+
+    # Other static files
+    location / {
+        root /var/www/html;
+        index index.html index.htm;
+        try_files $uri $uri/ =404;
+    }
+}
+
+# New server block for mmcalataci subdomains
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name mmcalataci.robertomaranhao.com mmcalataci.mmca.com.br;
+
+    ssl_certificate /etc/letsencrypt/live/robertomaranhao.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/robertomaranhao.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # Limitar requisições para este servidor
+    limit_req zone=addr burst=10 nodelay;
+    
+    # Bloqueio básico para bots e scanners conhecidos
+    if ($http_user_agent ~* (bot|crawler|spider|scan|wget|curl|zgrab|nmap)) {
+        return 403;
+    }
+
+    # Proxy all requests to Docker app on port 8082
+    location / {
+        proxy_pass http://localhost:8082/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        
+        # Timeout settings
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+    }
+    
+    # Static files
+    location /static/ {
+        root /var/www/html;
+        try_files $uri $uri/ =404;
+    }
+}
+
+# New server block for mmcacopasa subdomains
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name mmcacopasa.robertomaranhao.com copasa.mmca.com.br;
+
+    ssl_certificate /etc/letsencrypt/live/robertomaranhao.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/robertomaranhao.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # Limitar requisições para este servidor
+    limit_req zone=addr burst=10 nodelay;
+    
+    # Bloqueio básico para bots e scanners conhecidos
+    if ($http_user_agent ~* (bot|crawler|spider|scan|wget|curl|zgrab|nmap)) {
+        return 403;
+    }
+
+    # Proxy all requests to Docker app on port 8083
+    location / {
+        proxy_pass http://localhost:8083/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        
+        # Timeout settings
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+    }
+        
+    # Static files
+    location /static/ {
+        root /var/www/html;
+        try_files $uri $uri/ =404;
+    }
+}
+
+# New server block for dig4me subdomain
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name dig4me.robertomaranhao.com;
+
+    ssl_certificate /etc/letsencrypt/live/robertomaranhao.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/robertomaranhao.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # Limitar requisições para este servidor
+    limit_req zone=addr burst=10 nodelay;
+    
+    # Bloqueio básico para bots e scanners conhecidos
+    if ($http_user_agent ~* (bot|crawler|spider|scan|wget|curl|zgrab|nmap)) {
+        return 403;
+    }
+
+    # Proxy all requests to Docker app on port 8081
+    location / {
+        proxy_pass http://localhost:8081/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        
+        # Timeout settings
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+    }
+        
+    # Static files
+    location /static/ {
+        root /var/www/html;
+        try_files $uri $uri/ =404;
+    }
+}
+
+# New server block for stocks subdomain
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name stocks.robertomaranhao.com;
+
+    ssl_certificate /etc/letsencrypt/live/robertomaranhao.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/robertomaranhao.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # Limitar requisições para este servidor
+    limit_req zone=addr burst=10 nodelay;
+    
+    # Bloqueio básico para bots e scanners conhecidos
+    if ($http_user_agent ~* (bot|crawler|spider|scan|wget|curl|zgrab|nmap)) {
+        return 403;
+    }
+
+    # Proxy all requests to Docker app on port 8084
+    location / {
+        proxy_pass http://localhost:8084/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        
+        # Timeout settings
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+    }
+        
+    # Static files
+    location /static/ {
+        root /var/www/html;
+        try_files $uri $uri/ =404;
+    }
+}
+
+# Comando para copiar os arquivos staticfiles para o diretório do NGINX:
+# cp -r /home/ubuntu/MMCAcopasa/staticfiles/* /var/www/html/
+
+
+# sudo certbot --nginx -d robertomaranhao.com -d stocks.robertomaranhao.com -d dig4me.robertomaranhao.com -d mmcalataci.robertomaranhao.com -d mmcalataci.mmca.com.br -d mmcacopasa.robertomaranhao.com -d copasa.mmca.com.br --expand

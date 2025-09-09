@@ -14,6 +14,6 @@ RUN mkdir -p /app/data
 # Depois copia o código da aplicação
 COPY app/ /app/
 
-EXPOSE 8085
+EXPOSE 8084
 
 CMD ["python", "app.py"]

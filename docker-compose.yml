@@ -3,7 +3,7 @@ services:
   stock_monitor:
     build: .
     ports:
-      - "8085:8085"
+      - "8084:8084"
     restart: unless-stopped
     volumes:
       - ./data:/app/data
